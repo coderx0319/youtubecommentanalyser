@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Sentiment Analysis</title>
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" type="image/png">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 100%;
+            width: 800px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+            margin: 0 auto;
+        }
+        .youtube-logo {
+            width: 150px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="text"] {
+            width: 70%;
+            max-width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            margin: 10px;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .analyze-button {
+            background-color: #28a745;
+        }
+        .analyze-button:hover {
+            background-color: #218838;
+        }
+        .comment-button {
+            background-color: #007bff;
+        }
+        .comment-button:hover {
+            background-color: #0056b3;
+        }
+        .comment-section {
+            display: none;
+            text-align: left;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #f9f9f9;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            word-wrap: break-word;
+        }
+        .total-comments {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        #chart-container {
+            max-width: 100%;
+            width: 800px;
+            margin: 20px auto;
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 100%;
+                padding: 15px;
+            }
+            input[type="text"] {
+                width: 100%;
+            }
+            button {
+                width: 100%;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg" alt="YouTube Logo" class="youtube-logo">
+        <h1>YouTube Sentiment Analyser</h1>
+        <form id="analyzeForm" method="POST">
+            <label for="video_url">Enter YouTube Video URL:</label><br>
+            <input type="text" name="video_url" id="video_url" required value="{{ video_url }}">
+            <button type="submit" class="analyze-button">Analyze</button>
+        </form>
+
+        {% if total_comments > 0 %}
+        <p class="total-comments">Total Comments Analyzed: {{ total_comments }}</p>
+        {% endif %}
+
+        <div id="chart-container">
+            <canvas id="sentimentChart"></canvas>
+        </div>
+
+        {% if positive or negative or neutral %}
+        <div id="buttons-container" style="margin-top: 20px;">
+            <button id="positive-btn" class="comment-button">Positive Comments</button>
+            <button id="negative-btn" class="comment-button">Negative Comments</button>
+            <button id="neutral-btn" class="comment-button">Neutral Comments</button>
+        </div>
+        {% endif %}
+
+        <!-- Comments Sections -->
+        {% if positive %}
+        <div id="positive-comments" class="comment-section">
+            <h2>Positive Comments</h2>
+            <ul>
+                {% for comment in positive %}
+                    <li>{{ comment }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if negative %}
+        <div id="negative-comments" class="comment-section">
+            <h2>Negative Comments</h2>
+            <ul>
+                {% for comment in negative %}
+                    <li>{{ comment }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if neutral %}
+        <div id="neutral-comments" class="comment-section">
+            <h2>Neutral Comments</h2>
+            <ul>
+                {% for comment in neutral %}
+                    <li>{{ comment }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // SweetAlert2 popup for form submission with progress animation
+        document.getElementById('analyzeForm').onsubmit = function(event) {
+            event.preventDefault();
+            let progress = 0;
+            Swal.fire({
+                title: 'Analyzing...',
+                html: 'Please wait while we analyze the comments. <b></b>%',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                    const b = Swal.getHtmlContainer().querySelector('b');
+                    const interval = setInterval(() => {
+                        progress += Math.floor(Math.random() * 10) + 5;
+                        if (progress > 100) progress = 100;
+                        b.textContent = progress;
+                        if (progress === 100) {
+                            clearInterval(interval);
+                            document.getElementById('analyzeForm').submit();
+                        }
+                    }, 300);
+                }
+            });
+        };
+
+        // Event listeners for showing comments sections
+        document.addEventListener("DOMContentLoaded", function() {
+            const positiveBtn = document.getElementById('positive-btn');
+            const negativeBtn = document.getElementById('negative-btn');
+            const neutralBtn = document.getElementById('neutral-btn');
+
+            if (positiveBtn) {
+                positiveBtn.addEventListener("click", function() {
+                    toggleCommentsSection('positive-comments');
+                });
+            }
+
+            if (negativeBtn) {
+                negativeBtn.addEventListener("click", function() {
+                    toggleCommentsSection('negative-comments');
+                });
+            }
+
+            if (neutralBtn) {
+                neutralBtn.addEventListener("click", function() {
+                    toggleCommentsSection('neutral-comments');
+                });
+            }
+
+            // Render the sentiment chart if data is available
+            renderSentimentChart({{ positive|length }}, {{ negative|length }}, {{ neutral|length }});
+        });
+
+        function toggleCommentsSection(sectionId) {
+            // Hide all sections
+            const sections = document.getElementsByClassName('comment-section');
+            for (let i = 0; i < sections.length; i++) {
+                sections[i].style.display = 'none';
+            }
+
+            // Show the selected section
+            const selectedSection = document.getElementById(sectionId);
+            if (selectedSection) {
+                selectedSection.style.display = 'block';
+            }
+        }
+
+        function renderSentimentChart(positiveCount, negativeCount, neutralCount) {
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        data: [positiveCount, negativeCount, neutralCount],
+                        backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            enabled: true
+                        }
+                    }
+                }
+            });
+        } 
+    </script>
+</body>
+</html>
