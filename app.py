@@ -8,7 +8,7 @@ from transformers import pipeline
 app = Flask(__name__)
 
 # YouTube Data API key
-API_KEY = 'AIzaSyCJm506cP0y-jxED3wCxSceQ6BkwLc5csc'
+API_KEY = 'GETYOUROWNAPIKEY'
 
 def get_video_id(url):
     # Extract video ID from the YouTube URL
